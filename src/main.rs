@@ -19,13 +19,17 @@ struct Config {
     providers: Vec<Provider>,
 }
 
+static APP_USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION"),);
+
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();
     let config_file = File::open(args.config)?;
     let config: Config = serde_yaml::from_reader(config_file)?;
 
-    let http_client = reqwest::Client::new();
+    let http_client = reqwest::Client::builder()
+        .user_agent(APP_USER_AGENT)
+        .build()?;
 
     for provider in config.providers {
         println!("{:?}", provider.release(&http_client).await?.version());

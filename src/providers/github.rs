@@ -95,10 +95,6 @@ impl LatestReleaseProvider {
         );
         let api_response = http_client
             .get(url)
-            .header(
-                "User-Agent",
-                format!("{} {}", env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION")),
-            )
             .header("Accept", "application/vnd.github+json")
             .header("X-GitHub-Api-Version", "2022-11-28")
             .send()
