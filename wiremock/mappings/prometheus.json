@@ -4,11 +4,16 @@
         {
             "request": {
                 "method": "GET",
-                "url": "/github/repos/jgosmann/dmarc-metrics-exporter/releases/latest"
+                "urlPath": "/prometheus/v1/query",
+                "queryParameters": {
+                    "query": {
+                        "equalTo": "dmarc_metrics_exporter_build_info"
+                    }
+                }
             },
             "response": {
                 "status": 200,
-                "bodyFileName": "github/latest_release.json"
+                "bodyFileName": "prometheus/dmarc_metrics_exporter_build_info.json"
             }
         }
     ]

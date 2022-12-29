@@ -1,7 +1,9 @@
+use std::collections::HashMap;
+
 use regex::Regex;
 use serde::Deserialize;
 
-use super::Release;
+use super::VersionInfo;
 
 fn github_api_url() -> String {
     "https://api.github.com".into()
@@ -15,14 +17,17 @@ fn default_version_fmt() -> String {
     "${1}".into()
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct GithubRelease {
     version: Option<String>,
 }
 
-impl Release for GithubRelease {
-    fn version(&self) -> Option<&str> {
-        self.version.as_ref().map(String::as_str)
+impl Into<VersionInfo> for GithubRelease {
+    fn into(self) -> VersionInfo {
+        VersionInfo {
+            version: self.version,
+            labels: HashMap::new(),
+        }
     }
 }
 
@@ -70,7 +75,7 @@ pub struct LatestReleaseProvider {
     api_url: String,
 }
 
-#[derive(Clone, Debug, Deserialize, PartialEq, Eq)]
+#[derive(Clone, Debug, Deserialize)]
 struct LatestReleaseResponse {
     tag_name: String,
 }
@@ -109,15 +114,17 @@ impl LatestReleaseProvider {
 
 #[cfg(test)]
 mod tests {
-    use crate::providers::Release;
+    use std::env::VarError;
+
+    use crate::providers::github::GithubRelease;
 
     use super::{LatestReleaseProvider, LatestReleaseResponse, VersionExtractor};
 
     fn api_url() -> String {
-        static DEFAULT_TEST_API_URL: &str = "http://localhost:8080";
+        static DEFAULT_TEST_API_URL: &str = "http://localhost:8080/github";
         std::env::var("TEST_GITHUB_API_URL")
-            .or_else(|_| std::env::var("TEST_API_URL"))
-            .unwrap_or_else(|_| DEFAULT_TEST_API_URL.into())
+            .or_else(|_| Ok(format!("{}/{}", std::env::var("TEST_API_URL")?, "github")))
+            .unwrap_or_else(|_: VarError| DEFAULT_TEST_API_URL.into())
     }
 
     #[tokio::test]
@@ -129,7 +136,12 @@ mod tests {
             version_extractor: VersionExtractor::default(),
         };
         let release = provider.fetch(&client).await.unwrap();
-        assert_eq!(release.version(), Some("0.8.0"))
+        assert_eq!(
+            release,
+            GithubRelease {
+                version: Some("0.8.0".into()),
+            }
+        )
     }
 
     #[test]

@@ -1,13 +1,20 @@
 
 providers:
-  - name: latest_a_b_release
+  - name: latest_dmarc_metrics_exporter_release
     provider: latest_github_release
     repo: jgosmann/dmarc-metrics-exporter
-    tag_name_regex: '^v?(.*)$'
+    tag_name_regex: '^v(.*)$'
     version_fmt: '$1'
+  - name: latest_dmarc_metrics_exporter_release_using_defaults
+    provider: latest_github_release
+    repo: jgosmann/dmarc-metrics-exporter
+  - name: current_dmarc_metrics_exporter_release
+    provider: prometheus
+    query: dmarc_metrics_exporter_build_info
+    label: version
 
 upgrade_pending_checks:
-  - name: a_b
-    latest_release: latest_a_b_release
-    metric: a_b_buildinfo
-    label: version
+  - name: dmarc_metrics_exporter_explicit
+    current: current_dmarc_metrics_exporter_release
+    latest: latest_dmarc_metrics_exporter_release
+  - name: dmarc_metrics_exporter

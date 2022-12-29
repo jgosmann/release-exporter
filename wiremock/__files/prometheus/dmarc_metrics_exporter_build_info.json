@@ -1,0 +1,1 @@
+{"status":"success","data":{"resultType":"vector","result":[{"metric":{"__name__":"dmarc_metrics_exporter_build_info","instance":"localhost:9797","job":"dmarc-metrics-exporter","version":"0.8.0"},"value":[1672331152.73,"1"]}]}}

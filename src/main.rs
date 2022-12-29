@@ -38,7 +38,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .build()?;
 
     for provider in config.providers {
-        println!("{:?}", provider.release(&http_client).await?.version());
+        for version in provider.versions(&http_client).await? {
+            println!("{:?}", version);
+        }
     }
     Ok(())
 }
