@@ -1,0 +1,15 @@
+{
+    "$schema": "https://raw.githubusercontent.com/wiremock/wiremock/master/src/main/resources/swagger/schemas/stub-mappings.yaml",
+    "mappings": [
+        {
+            "request": {
+                "method": "GET",
+                "url": "/repos/jgosmann/dmarc-metrics-exporter/releases/latest"
+            },
+            "response": {
+                "status": 200,
+                "bodyFileName": "github/latest_release.json"
+            }
+        }
+    ]
+}

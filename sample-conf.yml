@@ -1,0 +1,13 @@
+
+providers:
+  - name: latest_a_b_release
+    provider: latest_github_release
+    repo: jgosmann/dmarc-metrics-exporter
+    tag_name_regex: '^v?(.*)$'
+    version_fmt: '$1'
+
+upgrade_pending_checks:
+  - name: a_b
+    latest_release: latest_a_b_release
+    metric: a_b_buildinfo
+    label: version
