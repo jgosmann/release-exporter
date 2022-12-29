@@ -4,6 +4,7 @@ use clap::Parser;
 use serde::Deserialize;
 
 mod providers;
+mod serde_url;
 
 use providers::Provider;
 

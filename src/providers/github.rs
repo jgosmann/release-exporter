@@ -1,12 +1,13 @@
 use std::collections::HashMap;
 
 use regex::Regex;
+use reqwest::Url;
 use serde::Deserialize;
 
 use super::VersionInfo;
 
-fn github_api_url() -> String {
-    "https://api.github.com".into()
+fn github_api_url() -> Url {
+    Url::parse("https://api.github.com").unwrap()
 }
 
 fn default_tag_name_regex() -> Regex {
@@ -71,8 +72,8 @@ pub struct LatestReleaseProvider {
     #[serde(flatten)]
     version_extractor: VersionExtractor,
 
-    #[serde(default = "github_api_url")]
-    api_url: String,
+    #[serde(default = "github_api_url", with = "crate::serde_url")]
+    api_url: Url,
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -81,23 +82,20 @@ struct LatestReleaseResponse {
 }
 
 impl LatestReleaseProvider {
-    fn normalized_api_url(&self) -> &str {
-        if self.api_url.ends_with('/') {
-            &self.api_url[..self.api_url.len() - 1]
-        } else {
-            self.api_url.as_str()
-        }
-    }
-
     pub async fn fetch(
         &self,
         http_client: &reqwest::Client,
     ) -> super::error::Result<GithubRelease> {
-        let url = format!(
-            "{}/repos/{}/releases/latest",
-            self.normalized_api_url(),
-            self.repo
-        );
+        let (user, repo) = self
+            .repo
+            .split_once('/')
+            .unwrap_or((self.repo.as_str(), ""));
+        let mut url = self.api_url.clone();
+        url.path_segments_mut()
+            .map_err(|_| url::ParseError::RelativeUrlWithCannotBeABaseBase)?
+            .pop_if_empty()
+            .extend(["repos", user, repo, "releases", "latest"]);
+
         let api_response = http_client
             .get(url)
             .header("Accept", "application/vnd.github+json")
@@ -116,15 +114,21 @@ impl LatestReleaseProvider {
 mod tests {
     use std::env::VarError;
 
+    use reqwest::Url;
+
     use crate::providers::github::GithubRelease;
 
     use super::{LatestReleaseProvider, LatestReleaseResponse, VersionExtractor};
 
-    fn api_url() -> String {
+    fn api_url() -> Url {
         static DEFAULT_TEST_API_URL: &str = "http://localhost:8080/github";
-        std::env::var("TEST_GITHUB_API_URL")
-            .or_else(|_| Ok(format!("{}/{}", std::env::var("TEST_API_URL")?, "github")))
-            .unwrap_or_else(|_: VarError| DEFAULT_TEST_API_URL.into())
+        Url::parse(
+            std::env::var("TEST_GITHUB_API_URL")
+                .or_else(|_| Ok(format!("{}/{}", std::env::var("TEST_API_URL")?, "github")))
+                .unwrap_or_else(|_: VarError| DEFAULT_TEST_API_URL.into())
+                .as_str(),
+        )
+        .unwrap()
     }
 
     #[tokio::test]
