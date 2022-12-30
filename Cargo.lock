@@ -624,6 +624,7 @@ dependencies = [
  "reqwest",
  "serde",
  "serde_regex",
+ "serde_test",
  "serde_yaml",
  "thiserror",
  "tokio",
@@ -767,6 +768,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a8136f1a4ea815d7eac4101cfd0b16dc0cb5e1fe1b8609dfd728058656b7badf"
 dependencies = [
  "regex",
+ "serde",
+]
+
+[[package]]
+name = "serde_test"
+version = "1.0.152"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3611210d2d67e3513204742004d6ac6f589e521861dabb0f649b070eea8bed9e"
+dependencies = [
  "serde",
 ]
 

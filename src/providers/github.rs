@@ -2,7 +2,10 @@ use std::collections::HashMap;
 
 use regex::Regex;
 use reqwest::Url;
-use serde::Deserialize;
+use serde::{
+    de::{Unexpected, Visitor},
+    Deserialize, Deserializer,
+};
 
 use super::VersionInfo;
 
@@ -67,13 +70,52 @@ impl VersionExtractor {
 
 #[derive(Clone, Debug, Deserialize)]
 pub struct LatestReleaseProvider {
-    repo: String,
+    repo: GithubRepo,
 
     #[serde(flatten)]
     version_extractor: VersionExtractor,
 
     #[serde(default = "github_api_url", with = "crate::serde_url")]
     api_url: Url,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct GithubRepo {
+    pub user: String,
+    pub name: String,
+}
+
+impl<'de> Deserialize<'de> for GithubRepo {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        deserializer.deserialize_str(GithubRepoVisitor)
+    }
+}
+
+struct GithubRepoVisitor;
+
+impl<'de> Visitor<'de> for GithubRepoVisitor {
+    type Value = GithubRepo;
+
+    fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+        formatter.write_str("a Github repository of the format username/repo")
+    }
+
+    fn visit_str<E>(self, s: &str) -> Result<Self::Value, E>
+    where
+        E: serde::de::Error,
+    {
+        let (user, name) = s
+            .split_once('/')
+            .ok_or_else(|| serde::de::Error::invalid_value(Unexpected::Str(s), &self))?
+            .into();
+        Ok(GithubRepo {
+            user: user.into(),
+            name: name.into(),
+        })
+    }
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -86,15 +128,17 @@ impl LatestReleaseProvider {
         &self,
         http_client: &reqwest::Client,
     ) -> super::error::Result<GithubRelease> {
-        let (user, repo) = self
-            .repo
-            .split_once('/')
-            .unwrap_or((self.repo.as_str(), ""));
         let mut url = self.api_url.clone();
         url.path_segments_mut()
             .map_err(|_| url::ParseError::RelativeUrlWithCannotBeABaseBase)?
             .pop_if_empty()
-            .extend(["repos", user, repo, "releases", "latest"]);
+            .extend([
+                "repos",
+                &self.repo.user,
+                &self.repo.name,
+                "releases",
+                "latest",
+            ]);
 
         let api_response = http_client
             .get(url)
@@ -115,10 +159,11 @@ mod tests {
     use std::env::VarError;
 
     use reqwest::Url;
+    use serde_test::{assert_de_tokens, assert_de_tokens_error, Token};
 
     use crate::providers::github::GithubRelease;
 
-    use super::{LatestReleaseProvider, LatestReleaseResponse, VersionExtractor};
+    use super::{GithubRepo, LatestReleaseProvider, LatestReleaseResponse, VersionExtractor};
 
     fn api_url() -> Url {
         static DEFAULT_TEST_API_URL: &str = "http://localhost:8080/github";
@@ -135,7 +180,10 @@ mod tests {
     async fn test_fetch_latest_github_release() {
         let client = reqwest::Client::new();
         let provider = LatestReleaseProvider {
-            repo: "jgosmann/dmarc-metrics-exporter".into(),
+            repo: GithubRepo {
+                user: "jgosmann".into(),
+                name: "dmarc-metrics-exporter".into(),
+            },
             api_url: api_url(),
             version_extractor: VersionExtractor::default(),
         };
@@ -165,5 +213,28 @@ mod tests {
             VersionExtractor::default().extract(&response).unwrap(),
             String::from("1.2.3")
         );
+    }
+
+    #[test]
+    fn test_deserialize_github_repo() {
+        let repo = GithubRepo {
+            user: "user".into(),
+            name: "name".into(),
+        };
+        assert_de_tokens(&repo, &[Token::Str("user/name")]);
+    }
+
+    #[test]
+    fn test_deserialize_github_repo_multiple_slashes() {
+        let repo = GithubRepo {
+            user: "user".into(),
+            name: "name/foo".into(),
+        };
+        assert_de_tokens(&repo, &[Token::Str("user/name/foo")]);
+    }
+
+    #[test]
+    fn test_deserialize_github_repo_no_slashes() {
+        assert_de_tokens_error::<GithubRepo>(&[Token::Str("foo")], "invalid value: string \"foo\", expected a Github repository of the format username/repo");
     }
 }
