@@ -1,8 +1,8 @@
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
-    #[error("error during network communication")]
+    #[error("error during network communication: {source}")]
     TransportError { source: reqwest::Error },
-    #[error("invalid url")]
+    #[error("invalid url: {source}")]
     InvalidUrl { source: url::ParseError },
 }
 

@@ -75,6 +75,11 @@ fn create_app(config: Config, http_client: Client) -> Server<State> {
 
             let releases =
                 ReleaseCollection::collect_from(config.providers.clone(), &http_client).await;
+
+            for (provider, error) in releases.errors {
+                tide::log::error!("Provider {} reported error: {}", provider, error);
+            }
+
             metrics.update(
                 config
                     .upgrade_pending_checks
@@ -103,6 +108,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .timeout(Duration::from_secs(args.http_timeout_seconds))
         .build()?;
 
+    tide::log::start();
     let app = create_app(config, http_client);
     Ok(app.listen(args.listen_address).await?)
 }
