@@ -7,6 +7,7 @@ version = "0.1.0"
 
 [dependencies]
 clap = {version = "4.0.32", features = ["derive"]}
+futures = "0.3.25"
 regex = "1.7.0"
 reqwest = {version = "0.11.13", features = ["json"]}
 serde = {version = "1.0.152", features = ["derive"]}
@@ -14,6 +15,7 @@ serde_regex = "1.1.0"
 serde_yaml = "0.9.16"
 thiserror = "1.0.38"
 tokio = {version = "1.23.0", features = ["macros"]}
+tokio-stream = "0.1.11"
 url = "2.3.1"
 
 [dev-dependencies]

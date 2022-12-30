@@ -1,11 +1,15 @@
 use std::{fs::File, time::Duration};
 
 use clap::Parser;
+use release_collection::ReleaseCollection;
 use serde::Deserialize;
 
 mod baseurl;
+mod checks;
 mod providers;
+mod release_collection;
 
+use checks::upgrade_pending::UpgradePendingCheck;
 use providers::Provider;
 
 #[derive(Parser, Debug)]
@@ -23,6 +27,7 @@ struct Args {
 #[derive(Deserialize)]
 struct Config {
     providers: Vec<Provider>,
+    upgrade_pending_checks: Vec<UpgradePendingCheck>,
 }
 
 static APP_USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION"),);
@@ -38,10 +43,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .timeout(Duration::from_secs(args.http_timeout_seconds))
         .build()?;
 
-    for provider in config.providers {
-        for version in provider.versions(&http_client).await? {
-            println!("{:?}", version);
-        }
+    let releases = ReleaseCollection::collect_from(&config.providers, &http_client).await;
+
+    for check in config.upgrade_pending_checks {
+        println!("{}: {:?}", check.name, check.check(&releases.releases));
     }
     Ok(())
 }
