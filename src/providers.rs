@@ -14,7 +14,7 @@ pub struct VersionInfo {
     pub labels: HashMap<String, String>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize)]
 #[serde(tag = "provider", rename_all = "snake_case")]
 pub enum Provider {
     LatestGithubRelease {
@@ -40,7 +40,7 @@ impl Provider {
     pub async fn versions(
         &self,
         http_client: &reqwest::Client,
-    ) -> Result<Vec<VersionInfo>, Box<dyn std::error::Error>> {
+    ) -> Result<Vec<VersionInfo>, Box<dyn std::error::Error + Send + Sync>> {
         Ok(match self {
             Provider::LatestGithubRelease { config, name: _ } => {
                 vec![config.fetch(http_client).await?.into()]

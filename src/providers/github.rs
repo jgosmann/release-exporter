@@ -37,7 +37,7 @@ impl Into<VersionInfo> for GithubRelease {
 }
 
 #[derive(Clone, Debug, Deserialize)]
-struct VersionExtractor {
+pub struct VersionExtractor {
     #[serde(default = "default_tag_name_regex", with = "serde_regex")]
     tag_name_regex: Regex,
 
@@ -71,13 +71,13 @@ impl VersionExtractor {
 
 #[derive(Clone, Debug, Deserialize)]
 pub struct LatestReleaseProvider {
-    repo: GithubRepo,
+    pub repo: GithubRepo,
 
     #[serde(flatten)]
-    version_extractor: VersionExtractor,
+    pub version_extractor: VersionExtractor,
 
     #[serde(default = "github_api_url")]
-    api_url: BaseUrl,
+    pub api_url: BaseUrl,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -120,7 +120,7 @@ impl<'de> Visitor<'de> for GithubRepoVisitor {
 }
 
 #[derive(Clone, Debug, Deserialize)]
-struct LatestReleaseResponse {
+pub struct LatestReleaseResponse {
     tag_name: String,
 }
 
@@ -154,24 +154,11 @@ impl LatestReleaseProvider {
 
 #[cfg(test)]
 mod tests {
-    use std::env::VarError;
-
     use serde_test::{assert_de_tokens, assert_de_tokens_error, Token};
 
-    use crate::{baseurl::BaseUrl, providers::github::GithubRelease};
+    use crate::{providers::github::GithubRelease, test_config::github_api_url};
 
     use super::{GithubRepo, LatestReleaseProvider, LatestReleaseResponse, VersionExtractor};
-
-    fn api_url() -> BaseUrl {
-        static DEFAULT_TEST_API_URL: &str = "http://localhost:8080/github";
-        BaseUrl::parse(
-            std::env::var("TEST_GITHUB_API_URL")
-                .or_else(|_| Ok(format!("{}/{}", std::env::var("TEST_API_URL")?, "github")))
-                .unwrap_or_else(|_: VarError| DEFAULT_TEST_API_URL.into())
-                .as_str(),
-        )
-        .unwrap()
-    }
 
     #[tokio::test]
     async fn test_fetch_latest_github_release() {
@@ -181,7 +168,7 @@ mod tests {
                 user: "jgosmann".into(),
                 name: "dmarc-metrics-exporter".into(),
             },
-            api_url: api_url(),
+            api_url: github_api_url(),
             version_extractor: VersionExtractor::default(),
         };
         let release = provider.fetch(&client).await.unwrap();

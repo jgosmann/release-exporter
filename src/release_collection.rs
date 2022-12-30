@@ -8,13 +8,13 @@ use crate::providers::{Provider, VersionInfo};
 
 pub struct ReleaseCollection {
     pub releases: HashMap<String, Vec<VersionInfo>>,
-    pub errors: HashMap<String, Box<dyn std::error::Error>>,
+    pub errors: HashMap<String, Box<dyn std::error::Error + Send + Sync>>,
 }
 
 impl ReleaseCollection {
-    pub async fn collect_from(providers: &[Provider], http_client: &Client) -> Self {
+    pub async fn collect_from(providers: Vec<Provider>, http_client: &Client) -> Self {
         let results: HashMap<_, _> = stream::iter(providers)
-            .map(|p| async { (p.name().to_string(), p.versions(http_client).await) })
+            .map(|p| async move { (p.name().to_string(), p.versions(http_client).await) })
             .buffer_unordered(10)
             .collect()
             .await;

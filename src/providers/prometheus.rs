@@ -16,13 +16,13 @@ fn default_version_label() -> String {
 
 #[derive(Clone, Debug, Deserialize)]
 pub struct Provider {
-    query: String,
+    pub query: String,
 
     #[serde(default = "default_version_label")]
-    label: String,
+    pub label: String,
 
     #[serde(default = "default_prometheus_url")]
-    api_url: BaseUrl,
+    pub api_url: BaseUrl,
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -81,37 +81,23 @@ impl Provider {
 
 #[cfg(test)]
 mod tests {
-    use std::{collections::HashMap, env::VarError};
+    use std::collections::HashMap;
 
     use crate::{
-        baseurl::BaseUrl,
         providers::{
             prometheus::{default_version_label, Provider},
             VersionInfo,
         },
+        test_config::prometheus_api_url,
     };
-
-    fn api_url() -> BaseUrl {
-        static DEFAULT_TEST_API_URL: &str = "http://localhost:8080/prometheus/";
-        let url = std::env::var("TEST_PROMETHEUS_API_URL")
-            .or_else(|_| {
-                Ok(format!(
-                    "{}/{}",
-                    std::env::var("TEST_API_URL")?,
-                    "prometheus"
-                ))
-            })
-            .unwrap_or_else(|_: VarError| DEFAULT_TEST_API_URL.into());
-        BaseUrl::parse(&url).unwrap()
-    }
 
     #[tokio::test]
     async fn test_fetch_prometheus_versions() {
         let client = reqwest::Client::new();
         let provider = Provider {
-            api_url: api_url(),
             query: "dmarc_metrics_exporter_build_info".into(),
             label: default_version_label(),
+            api_url: prometheus_api_url(),
         };
         let releases = provider.fetch(&client).await.unwrap();
 

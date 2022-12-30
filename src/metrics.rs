@@ -43,6 +43,7 @@ impl EncodeLabelSet for UpgradeLabels {
     }
 }
 
+#[derive(Clone)]
 pub struct Metrics {
     upgrades: Family<UpgradeLabels, Gauge>,
 }
