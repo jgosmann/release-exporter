@@ -1,16 +1,17 @@
 use std::collections::HashMap;
 
 use regex::Regex;
-use reqwest::Url;
 use serde::{
     de::{Unexpected, Visitor},
     Deserialize, Deserializer,
 };
 
+use crate::baseurl::BaseUrl;
+
 use super::VersionInfo;
 
-fn github_api_url() -> Url {
-    Url::parse("https://api.github.com").unwrap()
+fn github_api_url() -> BaseUrl {
+    BaseUrl::parse("https://api.github.com").unwrap()
 }
 
 fn default_tag_name_regex() -> Regex {
@@ -75,8 +76,8 @@ pub struct LatestReleaseProvider {
     #[serde(flatten)]
     version_extractor: VersionExtractor,
 
-    #[serde(default = "github_api_url", with = "crate::serde_url")]
-    api_url: Url,
+    #[serde(default = "github_api_url")]
+    api_url: BaseUrl,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -129,19 +130,16 @@ impl LatestReleaseProvider {
         http_client: &reqwest::Client,
     ) -> super::error::Result<GithubRelease> {
         let mut url = self.api_url.clone();
-        url.path_segments_mut()
-            .map_err(|_| url::ParseError::RelativeUrlWithCannotBeABaseBase)?
-            .pop_if_empty()
-            .extend([
-                "repos",
-                &self.repo.user,
-                &self.repo.name,
-                "releases",
-                "latest",
-            ]);
+        url.extend([
+            "repos",
+            &self.repo.user,
+            &self.repo.name,
+            "releases",
+            "latest",
+        ]);
 
         let api_response = http_client
-            .get(url)
+            .get(url.into_url())
             .header("Accept", "application/vnd.github+json")
             .header("X-GitHub-Api-Version", "2022-11-28")
             .send()
@@ -158,16 +156,15 @@ impl LatestReleaseProvider {
 mod tests {
     use std::env::VarError;
 
-    use reqwest::Url;
     use serde_test::{assert_de_tokens, assert_de_tokens_error, Token};
 
-    use crate::providers::github::GithubRelease;
+    use crate::{baseurl::BaseUrl, providers::github::GithubRelease};
 
     use super::{GithubRepo, LatestReleaseProvider, LatestReleaseResponse, VersionExtractor};
 
-    fn api_url() -> Url {
+    fn api_url() -> BaseUrl {
         static DEFAULT_TEST_API_URL: &str = "http://localhost:8080/github";
-        Url::parse(
+        BaseUrl::parse(
             std::env::var("TEST_GITHUB_API_URL")
                 .or_else(|_| Ok(format!("{}/{}", std::env::var("TEST_API_URL")?, "github")))
                 .unwrap_or_else(|_: VarError| DEFAULT_TEST_API_URL.into())

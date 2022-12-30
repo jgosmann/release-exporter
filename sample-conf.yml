@@ -9,6 +9,7 @@ providers:
     provider: latest_github_release
     repo: jgosmann/dmarc-metrics-exporter
   - name: current_dmarc_metrics_exporter_release
+    api_url: http://localhost:8080/prometheus
     provider: prometheus
     query: dmarc_metrics_exporter_build_info
     label: version

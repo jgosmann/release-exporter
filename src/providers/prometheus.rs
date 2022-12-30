@@ -1,12 +1,13 @@
 use std::collections::HashMap;
 
-use reqwest::Url;
 use serde::Deserialize;
+
+use crate::baseurl::BaseUrl;
 
 use super::VersionInfo;
 
-fn default_prometheus_url() -> Url {
-    Url::parse("http://localhost:9090/api/").unwrap()
+fn default_prometheus_url() -> BaseUrl {
+    BaseUrl::parse("http://localhost:9090/api/").unwrap()
 }
 
 fn default_version_label() -> String {
@@ -20,8 +21,8 @@ pub struct Provider {
     #[serde(default = "default_version_label")]
     label: String,
 
-    #[serde(default = "default_prometheus_url", with = "crate::serde_url")]
-    api_url: Url,
+    #[serde(default = "default_prometheus_url")]
+    api_url: BaseUrl,
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -52,14 +53,11 @@ impl Provider {
         http_client: &reqwest::Client,
     ) -> super::error::Result<Vec<VersionInfo>> {
         let mut url = self.api_url.clone();
-        url.path_segments_mut()
-            .map_err(|_| url::ParseError::RelativeUrlWithCannotBeABaseBase)?
-            .pop_if_empty()
-            .extend(["v1", "query"]);
+        url.extend(["v1", "query"]);
         url.query_pairs_mut().append_pair("query", &self.query);
 
         let api_response: QueryResponse = http_client
-            .get(url)
+            .get(url.into_url())
             .header("Accept", "application/json")
             .send()
             .await?
@@ -85,14 +83,15 @@ impl Provider {
 mod tests {
     use std::{collections::HashMap, env::VarError};
 
-    use reqwest::Url;
-
-    use crate::providers::{
-        prometheus::{default_version_label, Provider},
-        VersionInfo,
+    use crate::{
+        baseurl::BaseUrl,
+        providers::{
+            prometheus::{default_version_label, Provider},
+            VersionInfo,
+        },
     };
 
-    fn api_url() -> Url {
+    fn api_url() -> BaseUrl {
         static DEFAULT_TEST_API_URL: &str = "http://localhost:8080/prometheus/";
         let url = std::env::var("TEST_PROMETHEUS_API_URL")
             .or_else(|_| {
@@ -103,7 +102,7 @@ mod tests {
                 ))
             })
             .unwrap_or_else(|_: VarError| DEFAULT_TEST_API_URL.into());
-        Url::parse(&url).unwrap()
+        BaseUrl::parse(&url).unwrap()
     }
 
     #[tokio::test]

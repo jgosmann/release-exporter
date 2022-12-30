@@ -3,8 +3,8 @@ use std::{fs::File, time::Duration};
 use clap::Parser;
 use serde::Deserialize;
 
+mod baseurl;
 mod providers;
-mod serde_url;
 
 use providers::Provider;
 
