@@ -36,7 +36,7 @@ impl<'de> Deserialize<'de> for UpgradePendingCheck {
     }
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, Hash, PartialEq, Eq)]
 pub enum CheckStatus {
     UpToDate,
     UpgradeAvailable,

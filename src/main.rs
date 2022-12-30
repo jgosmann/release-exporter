@@ -1,11 +1,14 @@
 use std::{fs::File, time::Duration};
 
 use clap::Parser;
+use metrics::Metrics;
+use prometheus_client::{encoding::text::encode, registry::Registry};
 use release_collection::ReleaseCollection;
 use serde::Deserialize;
 
 mod baseurl;
 mod checks;
+mod metrics;
 mod providers;
 mod release_collection;
 
@@ -45,8 +48,20 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let releases = ReleaseCollection::collect_from(&config.providers, &http_client).await;
 
-    for check in config.upgrade_pending_checks {
-        println!("{}: {:?}", check.name, check.check(&releases.releases));
-    }
+    let metrics = Metrics::new();
+    let mut registry = <Registry>::default();
+    metrics.register(&mut registry);
+
+    metrics.update(
+        config
+            .upgrade_pending_checks
+            .iter()
+            .map(|c| (c.name.as_str(), c.check(&releases.releases))),
+    );
+
+    let mut buffer = String::new();
+    encode(&mut buffer, &registry).unwrap();
+    println!("{}", buffer);
+
     Ok(())
 }
