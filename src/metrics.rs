@@ -12,6 +12,7 @@ use crate::checks::upgrade_pending::{CheckStatus, LabeledStatus};
 struct UpgradeLabels {
     status: CheckStatus,
     name: String,
+    latest_version: Option<String>,
     additional_labels: Vec<(String, String)>,
 }
 
@@ -32,6 +33,9 @@ impl EncodeLabelSet for UpgradeLabels {
     fn encode(&self, mut encoder: LabelSetEncoder) -> Result<(), std::fmt::Error> {
         ("status", self.status).encode(encoder.encode_label())?;
         ("name", self.name.as_str()).encode(encoder.encode_label())?;
+        if let Some(latest_version) = &self.latest_version {
+            ("latest_version", latest_version.as_str()).encode(encoder.encode_label())?;
+        }
         for label in &self.additional_labels {
             (label.0.as_str(), label.1.as_str()).encode(encoder.encode_label())?;
         }
@@ -61,6 +65,7 @@ impl Metrics {
                     .get_or_create(&UpgradeLabels {
                         name: name.into(),
                         status: release.status,
+                        latest_version: release.latest_version.map(String::from),
                         additional_labels: release
                             .labels
                             .iter()
@@ -127,7 +132,7 @@ mod tests {
             .collect();
         assert_eq!(
             buffer,
-            "upgrades{status=\"upgrade-available\",name=\"check_name\",label=\"label-value\"} 1"
+            "upgrades{status=\"upgrade-available\",name=\"check_name\",latest_version=\"latest-version\",label=\"label-value\"} 1"
         );
     }
 }
