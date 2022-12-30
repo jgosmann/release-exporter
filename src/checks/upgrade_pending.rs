@@ -95,9 +95,7 @@ impl UpgradePendingCheck {
                         .iter()
                         .all(|(label, value)| current.labels.get(label) == Some(value))
                 });
-                matching_release
-                    .map(|r| r.version.as_ref().map(|v| v.as_str()))
-                    .flatten()
+                matching_release.and_then(|r| r.version.as_deref())
             }
         }
     }

@@ -27,10 +27,10 @@ pub struct GithubRelease {
     version: Option<String>,
 }
 
-impl Into<VersionInfo> for GithubRelease {
-    fn into(self) -> VersionInfo {
-        VersionInfo {
-            version: self.version,
+impl From<GithubRelease> for VersionInfo {
+    fn from(release: GithubRelease) -> Self {
+        Self {
+            version: release.version,
             labels: HashMap::new(),
         }
     }
@@ -110,8 +110,7 @@ impl<'de> Visitor<'de> for GithubRepoVisitor {
     {
         let (user, name) = s
             .split_once('/')
-            .ok_or_else(|| serde::de::Error::invalid_value(Unexpected::Str(s), &self))?
-            .into();
+            .ok_or_else(|| serde::de::Error::invalid_value(Unexpected::Str(s), &self))?;
         Ok(GithubRepo {
             user: user.into(),
             name: name.into(),

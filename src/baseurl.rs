@@ -58,9 +58,9 @@ impl AsRef<Url> for BaseUrl {
     }
 }
 
-impl Into<Url> for BaseUrl {
-    fn into(self) -> Url {
-        self.into_url()
+impl From<BaseUrl> for Url {
+    fn from(base_url: BaseUrl) -> Self {
+        base_url.into_url()
     }
 }
 

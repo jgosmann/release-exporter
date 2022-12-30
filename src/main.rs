@@ -74,7 +74,7 @@ fn create_app(config: Config, http_client: Client) -> Server<State> {
             } = req.state();
 
             let releases =
-                ReleaseCollection::collect_from(config.providers.clone(), &http_client).await;
+                ReleaseCollection::collect_from(config.providers.clone(), http_client).await;
 
             for (provider, error) in releases.errors {
                 tide::log::error!("Provider {} reported error: {}", provider, error);
@@ -87,7 +87,7 @@ fn create_app(config: Config, http_client: Client) -> Server<State> {
                     .map(|c| (c.name.as_str(), c.check(&releases.releases))),
             );
             let mut buffer = String::new();
-            encode(&mut buffer, &registry).unwrap();
+            encode(&mut buffer, registry).unwrap();
 
             Ok(tide::Response::builder(200)
                 .content_type("application/openmetrics-text; version=1.0.0; charset=utf-8")
