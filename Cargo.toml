@@ -1,6 +1,17 @@
 [package]
+authors = ["Jan Gosmann <jan@hyper-world.de>"]
+description = "Retrieves release information and exports related metrics."
 edition = "2021"
+exclude = [
+  ".github/*",
+  "wiremock/*",
+  "compose.yml",
+]
+keywords = ["Github", "Prometheus", "release"]
+license = "MIT OR Apache-2.0"
 name = "release-exporter"
+readme = "README.md"
+repository = "https://github.com/jgosmann/release-exporter"
 version = "0.1.0"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
