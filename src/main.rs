@@ -115,6 +115,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 #[cfg(test)]
 mod tests {
+    use regex::Regex;
     use reqwest::{Client, Url};
     use tide::{
         http::Method,
@@ -174,15 +175,14 @@ mod tests {
             .unwrap();
 
         assert_eq!(response.status(), 200);
-        assert_eq!(
-            response
-                .body_string()
-                .await
-                .unwrap()
-                .split('\n')
-                .filter(|line| !line.starts_with('#'))
-                .collect::<String>(),
-            "upgrades{status=\"up-to-date\",name=\"check_name\",latest_version=\"0.8.0\",instance=\"localhost:9797\",job=\"dmarc-metrics-exporter\"} 1"
-        )
+        let metric_line = response
+            .body_string()
+            .await
+            .unwrap()
+            .split('\n')
+            .filter(|line| !line.starts_with('#'))
+            .collect::<String>();
+        let expected = Regex::new("^upgrades\\{status=\"up-to-date\",name=\"check_name\",latest_version=\"0\\.8\\.0\",.*\\} 1$").unwrap();
+        assert!(expected.is_match(&metric_line));
     }
 }
