@@ -6,9 +6,12 @@ and exports related metrics.
 ## Metrics
 
 Currently,
-a single metric `upgrades`
-containing information about available upgrades
-is supported.
+only a single core metric `upgrades` is supported.
+
+### upgrades
+
+The metric `upgrades`
+contains information about available upgrades.
 This information is represented in the labels.
 The metric value itself will be `1`.
 
@@ -32,6 +35,10 @@ all labels
 of the release provider,
 referenced in the `current` current field of the `upgrades_pending_checks` configuration,
 will be added.
+
+### release_exporter_build_info
+
+Provides the release-exporter version as label.
 
 
 ## Configuration

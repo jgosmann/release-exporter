@@ -6,7 +6,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.2.0] - 2022-12-31
 
-Build on ubuntu-20.04 instead of ubuntu-latest avoid dependency on OpenSSL 3.
+* Add `release_exporter_build_info` metric.
+* Build on ubuntu-20.04 instead of ubuntu-latest avoid dependency on OpenSSL 3.
 
 ## [0.1.0] - 2022-12-31
 

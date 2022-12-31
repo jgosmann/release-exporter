@@ -2,7 +2,7 @@ use std::{fs::File, sync::Arc, time::Duration};
 
 use clap::Parser;
 use metrics::Metrics;
-use prometheus_client::{encoding::text::encode, registry::Registry};
+use prometheus_client::{encoding::text::encode, metrics::info::Info, registry::Registry};
 use release_collection::ReleaseCollection;
 use reqwest::Client;
 use serde::Deserialize;
@@ -52,8 +52,14 @@ struct State {
 }
 
 fn create_app(config: Config, http_client: Client) -> Server<State> {
-    let metrics = Metrics::new();
     let mut registry = <Registry>::default();
+    registry.register(
+        "release_exporter_build",
+        "A metric with a constant '1' value labeled by version of the release-exporter",
+        Info::new(vec![("version", env!("CARGO_PKG_VERSION"))]),
+    );
+
+    let metrics = Metrics::new();
     metrics.register(&mut registry);
 
     let state = State {
@@ -175,14 +181,15 @@ mod tests {
             .unwrap();
 
         assert_eq!(response.status(), 200);
-        let metric_line = response
-            .body_string()
-            .await
-            .unwrap()
+        let body = response.body_string().await.unwrap();
+        println!("{}", body);
+        let metric_lines: Vec<&str> = body
             .split('\n')
             .filter(|line| !line.starts_with('#'))
-            .collect::<String>();
+            .collect();
         let expected = Regex::new("^upgrades\\{status=\"up-to-date\",name=\"check_name\",latest_version=\"0\\.8\\.0\",.*\\} 1$").unwrap();
-        assert!(expected.is_match(&metric_line));
+        assert!(metric_lines.iter().any(|line| expected.is_match(line)));
+        let expected = Regex::new("^release_exporter_build_info\\{version=\".+\"\\} 1$").unwrap();
+        assert!(metric_lines.iter().any(|line| expected.is_match(line)));
     }
 }
