@@ -1,4 +1,5 @@
 use std::{
+    cmp::Ordering,
     collections::{BinaryHeap, HashMap},
     ops::Add,
     time::{Duration, SystemTime},
@@ -18,13 +19,37 @@ impl Clock<SystemTime> for SystemClock {
     }
 }
 
+#[derive(Debug, PartialEq, Eq)]
+struct MinOrder<T: PartialEq + PartialOrd>(T);
+
+impl<T: PartialEq + PartialOrd> PartialOrd for MinOrder<T> {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        match self.0.partial_cmp(&other.0) {
+            None => None,
+            Some(Ordering::Equal) => Some(Ordering::Equal),
+            Some(Ordering::Less) => Some(Ordering::Greater),
+            Some(Ordering::Greater) => Some(Ordering::Less),
+        }
+    }
+}
+
+impl<T: Eq + Ord> Ord for MinOrder<T> {
+    fn cmp(&self, other: &Self) -> Ordering {
+        match self.cmp(other) {
+            Ordering::Less => Ordering::Greater,
+            Ordering::Equal => Ordering::Equal,
+            Ordering::Greater => Ordering::Less,
+        }
+    }
+}
+
 pub struct ReleaseCache<T: Add<Duration> + Ord, C: Clock<T>> {
     cache: HashMap<String, Vec<VersionInfo>>,
-    expiry: BinaryHeap<(T, String)>,
+    expiry: BinaryHeap<(MinOrder<T>, String)>,
     clock: C,
 }
 
-impl<T: Add<Duration, Output = T> + Ord, C: Clock<T>> ReleaseCache<T, C> {
+impl<T: Add<Duration, Output = T> + std::fmt::Debug + Ord, C: Clock<T>> ReleaseCache<T, C> {
     pub fn new(clock: C) -> Self {
         Self {
             cache: HashMap::new(),
@@ -43,15 +68,16 @@ impl<T: Add<Duration, Output = T> + Ord, C: Clock<T>> ReleaseCache<T, C> {
 
     pub fn insert(&mut self, key: String, releases: Vec<VersionInfo>, cache_duration: Duration) {
         self.cache.insert(key.clone(), releases);
-        self.expiry.push((self.clock.now() + cache_duration, key));
+        self.expiry
+            .push((MinOrder(self.clock.now() + cache_duration), key));
     }
 
     pub fn expire(&mut self) {
-        while let Some(item) = self.expiry.peek() {
-            if item.0 > self.clock.now() {
+        while let Some((expiry, item)) = self.expiry.peek() {
+            if expiry.0 > self.clock.now() {
                 break;
             }
-            self.cache.remove(&item.1);
+            self.cache.remove(item);
             self.expiry.pop();
         }
     }
