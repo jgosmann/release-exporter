@@ -1,5 +1,11 @@
-use std::{fs::File, sync::Arc, time::Duration};
+use std::{
+    collections::HashMap,
+    fs::File,
+    sync::{Arc, Mutex},
+    time::{Duration, SystemTime},
+};
 
+use cache::{ReleaseCache, SystemClock};
 use clap::Parser;
 use metrics::Metrics;
 use prometheus_client::{encoding::text::encode, metrics::info::Info, registry::Registry};
@@ -8,6 +14,7 @@ use reqwest::Client;
 use serde::Deserialize;
 
 mod baseurl;
+mod cache;
 mod checks;
 mod metrics;
 mod providers;
@@ -49,6 +56,7 @@ struct State {
     http_client: reqwest::Client,
     metrics: Metrics,
     registry: Arc<Registry>,
+    cache: Arc<Mutex<ReleaseCache<SystemTime, SystemClock>>>,
 }
 
 fn create_app(config: Config, http_client: Client) -> Server<State> {
@@ -67,6 +75,7 @@ fn create_app(config: Config, http_client: Client) -> Server<State> {
         http_client,
         metrics,
         registry: Arc::new(registry),
+        cache: Arc::new(Mutex::new(ReleaseCache::new(SystemClock))),
     };
 
     let mut app = tide::with_state(state);
@@ -77,20 +86,47 @@ fn create_app(config: Config, http_client: Client) -> Server<State> {
                 http_client,
                 metrics,
                 registry,
+                cache,
             } = req.state();
 
-            let releases =
-                ReleaseCollection::collect_from(config.providers.clone(), http_client).await;
+            cache.lock().unwrap().expire();
+
+            let (cached, stale) = config
+                .providers
+                .iter()
+                .cloned()
+                .partition(|p| cache.lock().unwrap().contains_key(p.name()));
+
+            let releases = ReleaseCollection::collect_from(stale, http_client).await;
+
+            let mut cache = cache.lock().unwrap();
 
             for (provider, error) in releases.errors {
                 tide::log::error!("Provider {} reported error: {}", provider, error);
             }
 
+            for (key, release) in &releases.releases {
+                cache.insert(
+                    key.clone(),
+                    release.versions.clone(),
+                    release.cache_duration,
+                );
+            }
+            let mut releases = releases
+                .releases
+                .into_iter()
+                .map(|(k, r)| (k, r.versions))
+                .collect::<HashMap<_, _>>();
+            releases.extend(
+                cached
+                    .iter()
+                    .map(|p| (p.name().to_owned(), cache.get(p.name()).unwrap().clone())),
+            );
             metrics.update(
                 config
                     .upgrade_pending_checks
                     .iter()
-                    .map(|c| (c.name.as_str(), c.check(&releases.releases))),
+                    .map(|c| (c.name.as_str(), c.check(&releases))),
             );
             let mut buffer = String::new();
             encode(&mut buffer, registry).unwrap();
@@ -121,6 +157,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 #[cfg(test)]
 mod tests {
+    use std::time::Duration;
+
     use regex::Regex;
     use reqwest::{Client, Url};
     use tide::{
@@ -154,6 +192,7 @@ mod tests {
                         api_url: github_api_url(),
                     },
                     name: "latest_release".into(),
+                    cache_duration: Duration::default(),
                 },
                 Provider::Prometheus {
                     config: prometheus::Provider {
@@ -162,6 +201,7 @@ mod tests {
                         api_url: prometheus_api_url(),
                     },
                     name: "current_release".into(),
+                    cache_duration: Duration::default(),
                 },
             ],
             upgrade_pending_checks: vec![UpgradePendingCheck {

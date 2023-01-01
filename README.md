@@ -89,6 +89,9 @@ Accepts the following configuration keys:
   from the capture groups of `tag_name_regex`.
 * `api_url` (string, default: `https://api.github.com`):
   the URL of the Github API.
+* `cache_seconds` (non-negative integer, default `14400` = 4h):
+  duration for which to cache the release in memory
+  to not run into Github's rate limiting.
   
 ##### prometheus provider
 
@@ -105,6 +108,8 @@ Retrieves versions from a Prometheus metric label.
   the label containing the version information.
 * `api_url` (string, default: `http://localhost:9090/api`):
   the URL of the Prometheus API.
+* `cache_seconds` (non-negative integer, default `0`):
+  duration for which to cache the release in memory.
   
 
 ### upgrade_pending_checks
