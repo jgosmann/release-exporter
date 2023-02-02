@@ -35,7 +35,7 @@ impl<T: PartialEq + PartialOrd> PartialOrd for MinOrder<T> {
 
 impl<T: Eq + Ord> Ord for MinOrder<T> {
     fn cmp(&self, other: &Self) -> Ordering {
-        match self.cmp(other) {
+        match T::cmp(&self.0, &other.0) {
             Ordering::Less => Ordering::Greater,
             Ordering::Equal => Ordering::Equal,
             Ordering::Greater => Ordering::Less,
