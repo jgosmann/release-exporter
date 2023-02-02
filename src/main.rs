@@ -170,8 +170,10 @@ mod tests {
         checks::upgrade_pending::UpgradePendingCheck,
         create_app,
         providers::{
-            github::{self, VersionExtractor},
-            prometheus, Provider,
+            github::{self},
+            prometheus,
+            version_extractor::VersionExtractor,
+            Provider,
         },
         test_config::{github_api_url, prometheus_api_url},
         Config,
@@ -198,6 +200,7 @@ mod tests {
                     config: prometheus::Provider {
                         query: "dmarc_metrics_exporter_build_info".into(),
                         label: "version".into(),
+                        version_extractor: VersionExtractor::default(),
                         api_url: prometheus_api_url(),
                     },
                     name: "current_release".into(),

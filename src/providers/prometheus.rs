@@ -4,7 +4,7 @@ use serde::Deserialize;
 
 use crate::baseurl::BaseUrl;
 
-use super::VersionInfo;
+use super::{version_extractor::VersionExtractor, VersionInfo};
 
 fn default_prometheus_url() -> BaseUrl {
     BaseUrl::parse("http://localhost:9090/api/").unwrap()
@@ -20,6 +20,9 @@ pub struct Provider {
 
     #[serde(default = "default_version_label")]
     pub label: String,
+
+    #[serde(flatten)]
+    pub version_extractor: VersionExtractor,
 
     #[serde(default = "default_prometheus_url")]
     pub api_url: BaseUrl,
@@ -69,7 +72,11 @@ impl Provider {
             .result
             .into_iter()
             .map(|mut result| {
-                let version = result.metric.labels.remove(&self.label);
+                let version = result
+                    .metric
+                    .labels
+                    .remove(&self.label)
+                    .and_then(|v| self.version_extractor.extract(&v));
                 VersionInfo {
                     version,
                     labels: result.metric.labels,
@@ -86,6 +93,7 @@ mod tests {
     use crate::{
         providers::{
             prometheus::{default_version_label, Provider},
+            version_extractor::VersionExtractor,
             VersionInfo,
         },
         test_config::prometheus_api_url,
@@ -97,6 +105,7 @@ mod tests {
         let provider = Provider {
             query: "dmarc_metrics_exporter_build_info".into(),
             label: default_version_label(),
+            version_extractor: VersionExtractor::default(),
             api_url: prometheus_api_url(),
         };
         let releases = provider.fetch(&client).await.unwrap();

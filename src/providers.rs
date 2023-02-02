@@ -8,6 +8,7 @@ use self::github::LatestReleaseProvider;
 pub mod error;
 pub mod github;
 pub mod prometheus;
+pub mod version_extractor;
 
 struct DurationSecsVisitor;
 

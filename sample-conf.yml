@@ -3,7 +3,7 @@ providers:
   - name: latest_dmarc_metrics_exporter_release
     provider: latest_github_release
     repo: jgosmann/dmarc-metrics-exporter
-    tag_name_regex: '^v(.*)$'
+    version_regex: '^v(.*)$'
     version_fmt: '$1'
   - name: latest_dmarc_metrics_exporter_release_using_defaults
     provider: latest_github_release

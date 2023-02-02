@@ -80,13 +80,13 @@ Accepts the following configuration keys:
 
 * `repo` (string):
   the repository in the form `username/repo`.
-* `tag_name_regex` (string, default `^v?(.*)$`):
+* `version_regex` (string, default `^v?(.*)$`):
   a regular expression
   to extract the version number from the release tag.
   Uses the [syntax of Rust's regex crate][regex-syntax].
 * `version_fmt` (string, default `${1}`):
   an expression to construct the version
-  from the capture groups of `tag_name_regex`.
+  from the capture groups of `version_regex`.
 * `api_url` (string, default: `https://api.github.com`):
   the URL of the Github API.
 * `cache_seconds` (non-negative integer, default `14400` = 4h):
@@ -106,6 +106,13 @@ Retrieves versions from a Prometheus metric label.
   will be attached to the release.
 * `label` (string, default: `version`):
   the label containing the version information.
+* `version_regex` (string, default `^v?(.*)$`):
+  a regular expression
+  to extract the version number from the version information.
+  Uses the [syntax of Rust's regex crate][regex-syntax].
+* `version_fmt` (string, default `${1}`):
+  an expression to construct the version
+  from the capture groups of `version_regex`.
 * `api_url` (string, default: `http://localhost:9090/api`):
   the URL of the Prometheus API.
 * `cache_seconds` (non-negative integer, default `0`):
