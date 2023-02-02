@@ -29,8 +29,8 @@ impl<'de> Deserialize<'de> for UpgradePendingCheck {
             latest,
         } = UpgradePendingCheckWithOptionals::deserialize(deserializer)?;
         Ok(Self {
-            current: current.unwrap_or_else(|| format!("current_{}_release", name)),
-            latest: latest.unwrap_or_else(|| format!("latest_{}_release", name)),
+            current: current.unwrap_or_else(|| format!("current_{name}_release")),
+            latest: latest.unwrap_or_else(|| format!("latest_{name}_release")),
             name,
         })
     }
